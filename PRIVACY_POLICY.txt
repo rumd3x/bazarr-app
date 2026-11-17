@@ -1,0 +1,96 @@
+PRIVACY POLICY - Bazarr (unofficial) for Android
+Package: com.rumd3x.bazarr
+Last updated: 2026-11-16
+
+1. ABOUT THIS APP
+
+Bazarr (unofficial) is a mobile client that lets you manage your own
+Bazarr server from your Android phone. It is an independent project and is
+not affiliated with, endorsed by or sponsored by the Bazarr project.
+
+2. SUMMARY
+
+We do not collect, store, sell, share or transmit your personal data to
+us or to any third party. The app has no accounts, no login, no backend
+of its own, no analytics, no advertising and no crash reporting.
+
+3. INFORMATION STORED ON YOUR DEVICE
+
+The following is kept only in the app's private storage on your device
+and never leaves it, except as described in section 4:
+
+- The primary URL, the optional secondary URL and the API key of your
+  Bazarr server, which you enter yourself.
+- A small cache of your series and movies lists, used to show the library faster.
+- Poster and fanart image addresses looked up from public metadata services,
+  and the cached images themselves.
+- A marker indicating that demo mode is active, when you use it.
+
+You can erase all of this at any time with "Disconnect & clear data" in
+the More screen, or by clearing the app's data or uninstalling the app
+from Android settings.
+
+4. NETWORK COMMUNICATION
+
+The app connects only to the server addresses you configure. Requests
+(including your API key, sent in the X-API-KEY header) go directly from your device to your own Bazarr
+server. We never receive them. Your Bazarr server may in turn contact
+other services (subtitle providers, Sonarr, Radarr, metadata
+hosts); this is controlled by your server and not by this app.
+
+The app permits unencrypted HTTP connections because Bazarr servers are
+often reached over a local network. If you use HTTP outside a trusted
+network, your data may be visible to others on that network. We recommend
+HTTPS whenever possible.
+
+To show posters and fanart, the app asks public, keyless metadata services
+(Sonarr's TVDB mirror at skyhook.sonarr.tv, Radarr's TMDB mirror at
+api.radarr.video and TVmaze at api.tvmaze.com) for the artwork of a title,
+sending only that title's public TVDB/TMDB/IMDb ID, and then downloads the
+images from the addresses they return (e.g. artworks.thetvdb.com,
+image.tmdb.org). Your server address and API key are never sent to them.
+Those services may see your device's IP address and the IDs requested.
+
+5. DEMO MODE
+
+Demo mode uses built-in sample data. In demo mode no data is sent to any
+server and no network connection to a Bazarr server is made.
+
+6. PERMISSIONS
+
+The app requests only the INTERNET permission, needed to reach your
+Bazarr server. It does not access your contacts, location, camera,
+microphone, photos, files or any other personal data.
+
+7. THIRD PARTIES
+
+The app contains no third-party analytics, advertising or tracking
+services, and shares no data with third parties.
+
+8. CHILDREN
+
+The app does not knowingly collect any information from anyone, including
+children under 13.
+
+9. SECURITY
+
+Data is kept in the app's private storage, which is protected by the
+Android operating system. You are responsible for protecting your device
+and your Bazarr server and API key.
+
+10. YOUR RIGHTS
+
+Because we hold none of your data, there is nothing for us to access,
+correct or delete. You control all data stored by the app on your device
+and can remove it at any time as described in section 3.
+
+11. CHANGES TO THIS POLICY
+
+This policy may be updated when the app changes. The latest version is
+kept in the app's source repository, and the "Last updated" date above
+will be changed accordingly.
+
+12. CONTACT
+
+Questions about this policy can be sent through the project's issue
+tracker at https://github.com/rumd3x/bazarr-app/issues

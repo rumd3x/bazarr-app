@@ -1,0 +1,1 @@
+Unofficial companion app to manage subtitles on your own Bazarr server from your phone.
