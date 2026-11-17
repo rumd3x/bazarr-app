@@ -1,0 +1,32 @@
+name: bazarr_app
+description: "Unofficial companion app for Bazarr."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.10.8
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+  http: ^1.6.0
+  shared_preferences: ^2.5.5
+  provider: ^6.1.5+1
+  cached_network_image: ^3.4.1
+  intl: ^0.20.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
+
+flutter:
+  assets:
+    - assets/branding/logo.png
+
+  uses-material-design: true
