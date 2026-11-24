@@ -1,6 +1,6 @@
 PRIVACY POLICY - Bazarr (unofficial) for Android
 Package: com.rumd3x.bazarr
-Last updated: 2026-11-16
+Last updated: 2026-11-24
 
 1. ABOUT THIS APP
 
@@ -37,6 +37,14 @@ The app connects only to the server addresses you configure. Requests
 server. We never receive them. Your Bazarr server may in turn contact
 other services (subtitle providers, Sonarr, Radarr, metadata
 hosts); this is controlled by your server and not by this app.
+
+Subtitle tools send media and subtitle identifiers, server-side file paths
+and your selected options to your Bazarr server. Preview and two-point fit
+retrieve subtitle text and timings for display. The translation dialog reads
+enabled languages and the configured translator from your Bazarr server.
+If you request translation, your Bazarr server may send subtitle text to
+that service. The app does not contact the service directly or retain
+subtitle contents in its cache.
 
 The app permits unencrypted HTTP connections because Bazarr servers are
 often reached over a local network. If you use HTTP outside a trusted

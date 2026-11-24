@@ -3,8 +3,10 @@
 A Flutter app to manage subtitles on your own [Bazarr](https://www.bazarr.media) server.
 
 - Bottom tabs: **Series**, **Movies**, **History**, **Jobs**, **More**
-- Browse the library, search and download subtitles manually, delete/sync, run tasks and manage the job queue
+- Browse the library, request automatic searches for missing subtitles, download manually selected results, delete or sync subtitles, run tasks and manage the job queue
+- Preview, translate, clean up and retime downloaded subtitles, choose sync references and settings, or extract embedded tracks
 - Primary + secondary server URL with API key; demo mode included
+- Open Connection settings from the top bar on **More**, even when the server is unavailable
 
 Not affiliated with the Bazarr project. See [.docs/](.docs/README.md) and [PRIVACY_POLICY.txt](PRIVACY_POLICY.txt).
 
@@ -24,6 +26,9 @@ Not affiliated with the Bazarr project. See [.docs/](.docs/README.md) and [PRIVA
 </p>
 <p align="center">
   <img src="assets/images/screenshots/09-more.png" width="22%" alt="More" />
+  <img src="assets/images/screenshots/10-subtitle-tools.png" width="22%" alt="Downloaded subtitle tools" />
+  <img src="assets/images/screenshots/11-subtitle-sync.png" width="22%" alt="Subtitle sync options" />
+  <img src="assets/images/screenshots/12-subtitle-preview.png" width="22%" alt="Subtitle preview" />
 </p>
 
 ```

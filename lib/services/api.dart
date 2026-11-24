@@ -69,10 +69,13 @@ class BazarrApi {
     String method,
     String path, {
     Map<String, dynamic>? query,
+    Map<String, String>? form,
+    bool allowFailover = true,
     Duration timeout = _timeout,
   }) async {
     Object? lastError;
-    for (final base in _bases) {
+    final bases = _bases;
+    for (final base in allowFailover ? bases : bases.take(1)) {
       try {
         final uri = Uri.parse('$base/api$path').replace(
           queryParameters: query?.map(
@@ -81,6 +84,7 @@ class BazarrApi {
           ),
         );
         final req = http.Request(method, uri)..headers.addAll(headers);
+        if (form != null) req.bodyFields = form;
         final res = await http.Response.fromStream(
           await _client.send(req).timeout(timeout),
         );
@@ -98,6 +102,11 @@ class BazarrApi {
       } on Exception catch (e) {
         lastError = e;
       }
+    }
+    if (!allowFailover) {
+      throw ApiException(
+        'Could not confirm whether Bazarr applied the subtitle change.',
+      );
     }
     throw ApiException('Could not reach Bazarr (${lastError ?? 'no URL'})');
   }
@@ -306,18 +315,68 @@ class BazarrApi {
     },
   );
 
-  Future<void> syncSubtitle(MediaRef m, Json subtitle) => _send(
+  Future<Json> subtitleReferences(MediaRef m, String path) async {
+    final response = await _send(
+      'GET',
+      '/subtitles',
+      query: {
+        'subtitlesPath': path,
+        if (m.isMovie) 'radarrMovieId': m.id else 'sonarrEpisodeId': m.id,
+      },
+      timeout: searchTimeout,
+    );
+    final data = response is Map ? response['data'] : null;
+    return {
+      for (final key in [
+        'audio_tracks',
+        'embedded_subtitles_tracks',
+        'external_subtitles_tracks',
+      ])
+        key: _list(data is Map ? data[key] : null),
+    };
+  }
+
+  Future<List<Json>> subtitleContents(String path) async => _data(
+    await _send('GET', '/subtitles/contents', query: {'subtitlePath': path}),
+  );
+
+  Future<List<Json>> enabledLanguages() async => _list(
+    await _send('GET', '/system/languages'),
+  ).where((language) => language['enabled'] == true).toList();
+
+  Future<Json> subtitleTranslator() async {
+    final settings = await _send('GET', '/system/settings');
+    final translator = settings is Map ? settings['translator'] : null;
+    return {
+      if (translator is Map) ...{
+        'type': translator['translator_type'],
+        'model': translator['gemini_model'],
+      },
+    };
+  }
+
+  Future<void> applySubtitleTool(
+    MediaRef m,
+    Json subtitle,
+    String action, {
+    Map<String, String> options = const {},
+  }) => _send(
     'PATCH',
     '/subtitles',
-    query: {
-      'action': 'sync',
+    query: {'action': action},
+    form: {
       'type': m.isMovie ? 'movie' : 'episode',
-      'id': m.id,
-      'language': subtitle['code2'],
-      'path': subtitle['path'],
+      'id': '${m.id}',
+      'language': '${subtitle['code2']}',
+      if (subtitle['path'] case final String path when path.isNotEmpty)
+        'path': path,
+      if (subtitle['id'] case final int id when id > 0) 'subtitles_id': '$id',
       'forced': _bool(subtitle['forced']),
       'hi': _bool(subtitle['hi']),
+      ...options,
     },
+    // A lost response does not tell us if Bazarr already modified the file.
+    allowFailover: false,
     timeout: searchTimeout,
   );
 
@@ -351,7 +410,7 @@ class BazarrApi {
   List<Json> _data(dynamic r) => _list(r is Map ? r['data'] : r);
 
   List<Json> _list(dynamic v) =>
-      (v as List? ?? const []).map((e) => Json.from(e as Map)).toList();
+      (v as List? ?? const []).whereType<Map>().map(Json.from).toList();
 
   void dispose() => _client.close();
 }

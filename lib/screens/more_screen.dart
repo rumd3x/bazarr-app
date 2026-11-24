@@ -13,8 +13,23 @@ class MoreScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
     return Scaffold(
-      appBar: AppBar(title: const Text('More')),
+      appBar: AppBar(
+        title: const Text('More'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_ethernet),
+            tooltip: 'Connection settings',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const SetupScreen(editing: true),
+              ),
+            ),
+          ),
+        ],
+      ),
       body: AsyncBody<List<dynamic>>(
+        key: ObjectKey(state.api),
         load: (api) => Future.wait([
           api.systemStatus(),
           api.health(),
@@ -128,46 +143,31 @@ class MoreScreen extends StatelessWidget {
               ),
               const SectionHeader('App'),
               Card(
-                child: Column(
-                  children: [
-                    ListTile(
-                      leading: const Icon(Icons.settings_ethernet),
-                      title: const Text('Connection settings'),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const SetupScreen(editing: true),
+                child: ListTile(
+                  leading: const Icon(Icons.logout),
+                  title: const Text('Disconnect & clear data'),
+                  onTap: () async {
+                    final ok = await showDialog<bool>(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        title: const Text('Disconnect?'),
+                        content: const Text(
+                          'Saved URLs, API key and cache will be removed.',
                         ),
-                      ),
-                    ),
-                    ListTile(
-                      leading: const Icon(Icons.logout),
-                      title: const Text('Disconnect & clear data'),
-                      onTap: () async {
-                        final ok = await showDialog<bool>(
-                          context: context,
-                          builder: (ctx) => AlertDialog(
-                            title: const Text('Disconnect?'),
-                            content: const Text(
-                              'Saved URLs, API key and cache will be removed.',
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(ctx, false),
-                                child: const Text('Cancel'),
-                              ),
-                              FilledButton(
-                                onPressed: () => Navigator.pop(ctx, true),
-                                child: const Text('Disconnect'),
-                              ),
-                            ],
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx, false),
+                            child: const Text('Cancel'),
                           ),
-                        );
-                        if (ok == true) state.reset();
-                      },
-                    ),
-                  ],
+                          FilledButton(
+                            onPressed: () => Navigator.pop(ctx, true),
+                            child: const Text('Disconnect'),
+                          ),
+                        ],
+                      ),
+                    );
+                    if (ok == true) state.reset();
+                  },
                 ),
               ),
               const SizedBox(height: 16),

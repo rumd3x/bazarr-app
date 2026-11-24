@@ -9,6 +9,7 @@
 ## API notes (base `/api`)
 - Lists return `{data:[...], total}`; status/health/jobs/tasks/providers return `{data: ...}`; `/badges` is flat; `/system/languages/profiles` is a plain list.
 - Subtitle search: `GET /providers/episodes?episodeid=` or `/providers/movies?radarrid=`; download via POST on the same path.
-- Auto-download/delete: `PATCH`/`DELETE /episodes/subtitles` or `/movies/subtitles`; sync: `PATCH /subtitles?action=sync`.
+- Auto-download/delete: `PATCH`/`DELETE /episodes/subtitles` or `/movies/subtitles`.
+- Subtitle tools use `PATCH /subtitles` with an `action` query parameter and a form containing media and subtitle identifiers and tool-specific options. These file mutations use one server URL so a lost response cannot trigger the same edit on the fallback URL. `GET /subtitles` returns sync reference tracks, `GET /subtitles/contents` returns timed cues, and translation uses enabled languages from `GET /system/languages` and the configured translator from `GET /system/settings`.
 - Jobs actions: `force_start`, `move_top`, `move_bottom`; queues: pending, failed, completed.
 - History action type is inferred from the description (the int `action` is unreliable).

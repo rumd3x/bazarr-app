@@ -5,6 +5,7 @@ import '../services/api.dart';
 import '../services/app_state.dart';
 import '../widgets/common.dart';
 import 'history_screen.dart';
+import 'subtitle_tools.dart';
 
 /// Lets the user pick a languages profile. Returns `null` when cancelled and
 /// `-1` when "no profile" was chosen.
@@ -69,6 +70,7 @@ class _MediaScreenState extends State<MediaScreen> {
   Json? _item;
   Object? _error;
   int _historyVersion = 0;
+  bool _applyingSubtitleTool = false;
 
   // Manual search state lives here so it survives tab switches.
   List<Json>? _results;
@@ -171,8 +173,69 @@ class _MediaScreenState extends State<MediaScreen> {
         ],
       ),
     );
-    if (ok != true) return;
+    if (ok != true || !mounted) return;
     await _run(() => _api.deleteSubtitle(_ref, sub), 'Subtitle deleted');
+  }
+
+  Future<void> _useSubtitleTool(SubtitleTool tool, Json subtitle) async {
+    if (_applyingSubtitleTool) return;
+    if (tool == SubtitleTool.preview) {
+      final path = subtitle['path'] as String;
+      await Navigator.push<void>(
+        context,
+        MaterialPageRoute(
+          builder: (_) => SubtitleCueScreen(
+            title: subtitleFileName(path),
+            load: () => _api.subtitleContents(path),
+          ),
+        ),
+      );
+      return;
+    }
+
+    setState(() => _applyingSubtitleTool = true);
+    try {
+      if (tool == SubtitleTool.delete) {
+        await _delete(subtitle);
+        return;
+      }
+      final SubtitleToolRequest? request = switch (tool) {
+        SubtitleTool.sync ||
+        SubtitleTool.color ||
+        SubtitleTool.frameRate ||
+        SubtitleTool.offset ||
+        SubtitleTool.fit ||
+        SubtitleTool.translate => await showDialog<SubtitleToolRequest>(
+          context: context,
+          builder: (_) => SubtitleToolDialog(
+            tool: tool,
+            api: _api,
+            media: _ref,
+            subtitle: subtitle,
+          ),
+        ),
+        _ => (action: tool.action!, options: const <String, String>{}),
+      };
+      if (request == null || !mounted) return;
+
+      final success = switch (tool) {
+        SubtitleTool.sync => 'Subtitle sync requested',
+        SubtitleTool.translate => 'Subtitle translation requested',
+        SubtitleTool.extract => 'Subtitle extraction requested',
+        _ => 'Subtitle updated',
+      };
+      await _run(() async {
+        await _api.applySubtitleTool(
+          _ref,
+          subtitle,
+          request.action,
+          options: request.options,
+        );
+        if (mounted) context.read<AppState>().refreshActiveJobs();
+      }, success);
+    } finally {
+      if (mounted) setState(() => _applyingSubtitleTool = false);
+    }
   }
 
   Future<void> _movieAction(String action, String ok) =>
@@ -323,11 +386,11 @@ class _MediaScreenState extends State<MediaScreen> {
                 title: Text(languageLabel(l)),
                 subtitle: const Text('Not downloaded'),
                 trailing: FilledButton.tonalIcon(
-                  icon: const Icon(Icons.download, size: 18),
-                  label: const Text('Download'),
+                  icon: const Icon(Icons.search, size: 18),
+                  label: const Text('Auto search'),
                   onPressed: () => _run(
                     () => _api.autoDownload(_ref, l),
-                    'Subtitle downloaded',
+                    'Subtitle search requested',
                   ),
                 ),
               ),
@@ -341,6 +404,17 @@ class _MediaScreenState extends State<MediaScreen> {
     final path = '${s['path'] ?? ''}';
     final embedded = path.isEmpty;
     final size = s['file_size'];
+    final tools = embedded
+        ? [
+            if (s['id'] case final int id when id > 0) ...[
+              SubtitleTool.translate,
+              SubtitleTool.extract,
+            ],
+          ]
+        : [
+            for (final tool in SubtitleTool.values)
+              if (tool != SubtitleTool.extract) tool,
+          ];
     return Card(
       child: ListTile(
         leading: Icon(
@@ -351,23 +425,19 @@ class _MediaScreenState extends State<MediaScreen> {
         subtitle: Text(
           embedded
               ? 'Embedded in the video'
-              : '${path.split('/').last}${size is num ? ' · ${formatBytes(size)}' : ''}',
+              : '${subtitleFileName(path)}${size is num ? ' · ${formatBytes(size)}' : ''}',
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
         ),
-        trailing: embedded
+        trailing: tools.isEmpty
             ? null
-            : PopupMenuButton<String>(
-                onSelected: (v) {
-                  if (v == 'sync') {
-                    _run(() => _api.syncSubtitle(_ref, s), 'Subtitle synced');
-                  } else {
-                    _delete(s);
-                  }
-                },
-                itemBuilder: (_) => const [
-                  PopupMenuItem(value: 'sync', child: Text('Sync')),
-                  PopupMenuItem(value: 'delete', child: Text('Delete')),
+            : PopupMenuButton<SubtitleTool>(
+                tooltip: 'Subtitle tools for ${languageLabel(s)}',
+                enabled: !_applyingSubtitleTool,
+                onSelected: (tool) => _useSubtitleTool(tool, s),
+                itemBuilder: (_) => [
+                  for (final tool in tools)
+                    PopupMenuItem(value: tool, child: Text(tool.label)),
                 ],
               ),
       ),

@@ -156,6 +156,8 @@ class DemoServer {
                         'path': '/tv/${s.$1}/S${season}E$e.pt.srt',
                         'file_size': 48000 + rnd.nextInt(30000),
                       },
+                    if (season == 1 && e == 1)
+                      {..._lang('Spanish', 'es'), 'id': epId + 10000},
                   ],
             'missing_subtitles': [
               if (missing || noSubs) _lang('Portuguese', 'pt'),
@@ -224,6 +226,7 @@ class DemoServer {
               'path': '/movies/${m.$1}.pt.srt',
               'file_size': 68000 + i * 1300,
             },
+          if (i == 0) {..._lang('Spanish', 'es'), 'id': 20001},
         ],
         'missing_subtitles': [if (missing) _lang('Portuguese', 'pt')],
       });
@@ -386,6 +389,13 @@ class DemoServer {
       for (final v in q[k] ?? const <String>[]) ?int.tryParse(v),
     ];
 
+    _J? media({int? episode, int? movie}) => movie != null
+        ? _movies.where((m) => m['radarrId'] == movie).firstOrNull
+        : _episodes.values
+              .expand((episodes) => episodes)
+              .where((e) => e['sonarrEpisodeId'] == episode)
+              .firstOrNull;
+
     http.Response json(Object? body, [int code = 200]) => http.Response.bytes(
       utf8.encode(jsonEncode(body)),
       code,
@@ -449,6 +459,16 @@ class DemoServer {
         });
       case 'POST /providers':
         return ok();
+      case 'GET /system/languages':
+        return json([
+          {..._lang('English', 'en'), 'enabled': true},
+          {..._lang('Portuguese', 'pt'), 'enabled': true},
+          {..._lang('Spanish', 'es'), 'enabled': true},
+        ]);
+      case 'GET /system/settings':
+        return json({
+          'translator': {'translator_type': 'google_translate'},
+        });
       case 'GET /system/languages/profiles':
         return json([
           {
@@ -547,7 +567,65 @@ class DemoServer {
         return ok();
       case 'DELETE /episodes/subtitles':
       case 'DELETE /movies/subtitles':
+        final item = media(
+          episode: oneInt('episodeid'),
+          movie: oneInt('radarrid'),
+        );
+        if (item == null) return json('Media not found', 404);
+        (item['subtitles'] as List).removeWhere(
+          (sub) => sub['path'] == one('path'),
+        );
+        return ok();
+      case 'GET /subtitles':
+        final item = media(
+          episode: oneInt('sonarrEpisodeId'),
+          movie: oneInt('radarrMovieId'),
+        );
+        if (item == null) return json('Media not found', 404);
+        return json({
+          'data': {
+            'audio_tracks': [
+              {'stream': 'a:0', 'name': 'English', 'language': 'en'},
+            ],
+            'embedded_subtitles_tracks': [
+              for (final sub in item['subtitles'] as List)
+                if (sub['path'] == null)
+                  {
+                    'stream': 's:0',
+                    'name': sub['name'],
+                    'language': sub['code2'],
+                  },
+            ],
+            'external_subtitles_tracks': [
+              for (final sub in item['subtitles'] as List)
+                if (sub['path'] case final String path
+                    when path != one('subtitlesPath'))
+                  {
+                    'name': path.split('/').last,
+                    'path': path,
+                    'language': sub['code2'],
+                  },
+            ],
+          },
+        });
+      case 'GET /subtitles/contents':
+        return json({'data': _subtitleCues()});
       case 'PATCH /subtitles':
+        final form = r.bodyFields;
+        final id = int.tryParse(form['id'] ?? '');
+        final isMovie = form['type'] == 'movie';
+        final item = isMovie ? media(movie: id) : media(episode: id);
+        if (item == null) return json('Media not found', 404);
+        final action = one('action');
+        if (action == 'translate' || action == 'extract') {
+          _download(
+            form['language'],
+            isMovie ? null : id,
+            isMovie ? id : null,
+            form['forced'],
+            form['hi'],
+          );
+        }
         return ok();
       case 'GET /system/jobs':
         return json({'data': _jobs});
@@ -611,6 +689,29 @@ class DemoServer {
       },
   ];
 
+  List<_J> _subtitleCues() {
+    _J time(int seconds, [int ms = 0]) => {
+      'hours': 0,
+      'minutes': 0,
+      'seconds': seconds,
+      'total_seconds': seconds,
+      'microseconds': ms * 1000,
+    };
+    return [
+      for (final (index, line) in [
+        'We should leave before sunrise.',
+        'Where are we going?',
+        'I’ll tell you on the way.',
+      ].indexed)
+        {
+          'index': index + 1,
+          'content': line,
+          'start': time(5 + index * 4, 250),
+          'end': time(7 + index * 4, 750),
+        },
+    ];
+  }
+
   void _download(
     String? language,
     int? episodeId,
@@ -629,9 +730,18 @@ class DemoServer {
           language ?? (missing.isEmpty ? 'en' : missing.first['code2']);
       missing.removeWhere((l) => l['code2'] == code);
       final subs = t['subtitles'] as List;
-      if (!subs.any((s) => s['code2'] == code)) {
+      if (!subs.any((s) => s['code2'] == code && s['path'] != null)) {
         subs.add({
-          ..._lang(code == 'en' ? 'English' : 'Portuguese', '$code'),
+          ..._lang(
+            switch (code) {
+              'en' => 'English',
+              'es' => 'Spanish',
+              _ => 'Portuguese',
+            },
+            '$code',
+            forced: forced == 'True',
+            hi: hi == 'True',
+          ),
           'path': '/demo/${_nextId++}.$code.srt',
           'file_size': 52000,
         });
